@@ -49,44 +49,43 @@
       box-shadow: 0 2px 6px rgba(0,0,0,.15);
     }
 
-.marker {
-  position: relative;
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  color: #fff;
-  text-align: center;
-  font-size: 14px;
-  line-height: 1.1;
-  padding-top: 6px;
-  box-sizing: border-box;
-  font-weight: bold;
-  box-shadow: 0 4px 8px rgba(0,0,0,.35);
-}
+    .marker {
+      position: relative;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      color: #fff;
+      text-align: center;
+      font-size: 14px;
+      line-height: 1.1;
+      padding-top: 6px;
+      box-sizing: border-box;
+      font-weight: bold;
+      border: 2px solid #fff;
+      box-shadow: 0 0 4px rgba(0,0,0,.4);
+    }
 
-/* 水滴下面的尖角 */
-.marker::after {
-  content: "";
-  position: absolute;
-  bottom: -10px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 0;
-  height: 0;
-  border-left: 8px solid transparent;
-  border-right: 8px solid transparent;
-  border-top: 12px solid currentColor;
-}
-
-/* 顏色（官方系） */
-.green  { background: #7AC943; color: #7AC943; }   /* 正常 */
-.yellow { background: #F5A623; color: #F5A623; }  /* 無車可借 */
-.red    { background: #D0021B; color: #D0021B; }  /* 車位滿 */
+    .marker::after {
+      content: "";
+      position: absolute;
+      bottom: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 8px solid transparent;
+      border-right: 8px solid transparent;
+      border-top: 12px solid currentColor;
+    }
+    
+    .green  { background: #7AC943; }
+    .yellow { background: #F5A623; color: #333; }
+    .red    { background: #D0021B; }
 
 
     .divider {
       border-top: 2px solid rgba(255,255,255,.7);
-      margin: 3px 20px;
+      margin: 3px 30px;
     }
   </style>
 </head>
@@ -191,6 +190,7 @@
   </script>
 </body>
 </html>
+
 
 
 
