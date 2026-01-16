@@ -34,7 +34,7 @@ body {
   box-shadow: 0 2px 6px rgba(0,0,0,.15);
 }
 
-/* 搜尋 + 篩選容器 */
+/* 搜尋 + 篩選 */
 #controls {
   position: absolute;
   top: 12px;
@@ -55,12 +55,12 @@ body {
   box-shadow: 0 2px 6px rgba(0,0,0,.15);
 }
 
-/* 🔴🟡🟢 官方色 */
+/* 官方色 */
 .marker.green  { --c: #7AC943; }
 .marker.yellow { --c: #F5A623; }
 .marker.red    { --c: #A80000; }
 
-/* 移除 Leaflet 預設白底 */
+/* 移除 Leaflet 預設底 */
 .leaflet-div-icon {
   background: transparent !important;
   border: none !important;
@@ -72,7 +72,7 @@ body {
   height: 60px;
 }
 
-/* 把 +- 移到右上 */
+/* +- 移到右上（不關掉） */
 .leaflet-top.leaflet-left {
   right: 12px;
   left: auto;
@@ -81,10 +81,11 @@ body {
 </head>
 
 <body>
+
 <div id="count">站點數：--</div>
 
 <div id="controls">
-  <input id="search" placeholder="搜尋站點名稱…" />
+  <input id="search" placeholder="搜尋站點名稱或地址…" />
   <select id="statusFilter">
     <option value="all">全部</option>
     <option value="green">正常</option>
@@ -120,11 +121,11 @@ function getStatus(borrow, ret) {
   return "green";
 }
 
-/* ✅ 官方水滴 SVG（含中線） */
+/* 官方水滴 SVG（含中線） */
 function makeMarkerHTML(borrow, ret, status) {
   return `
   <div class="marker ${status}">
-    <svg viewBox="0 0 64 72" xmlns="http://www.w3.org/2000/svg">
+    <svg viewBox="0 0 64 72">
       <path
         d="M32 2
            C20 2 10 12 10 26
@@ -157,7 +158,13 @@ function render() {
     const status = getStatus(borrow, ret);
 
     if (filter !== "all" && status !== filter) return false;
-    if (keyword && !s.sna.includes(keyword)) return false;
+
+    /* ✅ 名稱 + 地址 共用搜尋 */
+    if (keyword) {
+      const name = s.sna || "";
+      const addr = s.ar || "";
+      if (!name.includes(keyword) && !addr.includes(keyword)) return false;
+    }
 
     return true;
   });
@@ -180,6 +187,7 @@ function render() {
     const marker = L.marker([lat, lng], { icon }).addTo(map);
     marker.bindPopup(`
       <b>${s.sna}</b><br>
+      📍 ${s.ar || ""}<br>
       🚲 可借：${borrow}<br>
       🅿️ 可還：${ret}<br>
       📍 總車柱：${s.tot}
@@ -188,7 +196,7 @@ function render() {
     markers.push(marker);
   });
 
-  count.textContent = `站點數：${markers.length} `;
+  count.textContent = `站點數：${markers.length}`;
 }
 
 fetch(DATA_URL)
@@ -201,14 +209,6 @@ fetch(DATA_URL)
 search.addEventListener("input", render);
 statusFilter.addEventListener("change", render);
 </script>
+
 </body>
 </html>
-
-
-
-
-
-
-
-
-
