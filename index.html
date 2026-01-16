@@ -84,7 +84,7 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <script>
-    // ⚠️ 關鍵：只抓「同資料夾」的靜態 JSON
+    // ✅ 使用你現有的 stations.json
     const DATA_URL = "stations.json";
 
     const map = L.map("map").setView([24.9936, 121.3010], 12);
@@ -115,12 +115,11 @@
       list.forEach(s => {
         const lat = Number(s.lat);
         const lng = Number(s.lng);
-
         if (isNaN(lat) || isNaN(lng)) return;
 
-        const borrow = Number(s.borrow);
-        const ret    = Number(s.return);
-        const total  = Number(s.total);
+        const borrow = Number(s.sbi);
+        const ret    = Number(s.bemp);
+        const total  = Number(s.tot);
 
         const icon = L.divIcon({
           className: "",
@@ -137,7 +136,7 @@
 
         const marker = L.marker([lat, lng], { icon }).addTo(map);
         marker.bindPopup(`
-          <b>${s.name}</b><br>
+          <b>${s.sna}</b><br>
           🚲 可借：${borrow}<br>
           🅿️ 可還：${ret}<br>
           📍 總車柱：${total}
@@ -157,9 +156,10 @@
 
     fetch(DATA_URL)
       .then(res => res.json())
-      .then(data => {
-        rawData = data;
-        render(data);
+      .then(json => {
+        // 你的檔案最外層是 { retCode, retVal: [...] }
+        rawData = json.retVal;
+        render(rawData);
       })
       .catch(err => {
         alert("資料載入失敗（stations.json）");
@@ -169,11 +169,9 @@
     document.getElementById("search").addEventListener("input", e => {
       const keyword = e.target.value.trim();
       render(
-        rawData.filter(s => s.name.includes(keyword))
+        rawData.filter(s => s.sna && s.sna.includes(keyword))
       );
     });
   </script>
 </body>
 </html>
-
-
