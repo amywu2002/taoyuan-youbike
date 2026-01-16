@@ -187,10 +187,10 @@ function render() {
     const marker = L.marker([lat, lng], { icon }).addTo(map);
     marker.bindPopup(`
       <b>${s.sna}</b><br>
-      📍 ${s.ar || ""}<br>
-      🚲 可借：${borrow}<br>
-      🅿️ 可還：${ret}<br>
-      📍 總車柱：${s.tot}
+      地址：${s.ar || ""}<br>
+      可借：${borrow}<br>
+      可還：${ret}<br>
+      總車柱：${s.tot}
     `);
 
     markers.push(marker);
@@ -212,3 +212,4 @@ statusFilter.addEventListener("change", render);
 
 </body>
 </html>
+
