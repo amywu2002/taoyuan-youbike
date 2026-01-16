@@ -22,7 +22,7 @@
       width: 100%;
     }
 
-    /* 站點數 */
+    /* 左上站點數 */
     #count {
       position: absolute;
       top: 12px;
@@ -35,34 +35,36 @@
       box-shadow: 0 2px 6px rgba(0,0,0,.15);
     }
 
-    /* 狀態篩選 */
-    #statusFilter {
+    /* 🔍 搜尋 + 篩選容器 */
+    #topBar {
       position: absolute;
-      top: 52px;
-      left: 12px;
+      top: 12px;
+      left: 50%;
+      transform: translateX(-50%);
       z-index: 1000;
-      padding: 6px 10px;
-      font-size: 14px;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    #search {
+      padding: 8px 12px;
+      width: 220px;
+      font-size: 16px;
       border-radius: 8px;
       border: 1px solid #ccc;
       background: #fff;
       box-shadow: 0 2px 6px rgba(0,0,0,.15);
     }
 
-    /* 搜尋 */
-    #search {
-      position: absolute;
-      top: 12px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 1000;
-      padding: 8px 12px;
-      width: 260px;
-      font-size: 16px;
+    #statusFilter {
+      padding: 8px 10px;
+      font-size: 14px;
       border-radius: 8px;
       border: 1px solid #ccc;
       background: #fff;
       box-shadow: 0 2px 6px rgba(0,0,0,.15);
+      cursor: pointer;
     }
 
     /* Marker 外觀 */
@@ -95,14 +97,17 @@
 <body>
   <div id="count">站點：--</div>
 
-  <select id="statusFilter">
-    <option value="all">全部</option>
-    <option value="green">正常</option>
-    <option value="yellow">無車</option>
-    <option value="red">無位</option>
-  </select>
+  <!-- 🔍 搜尋 + 狀態篩選 -->
+  <div id="topBar">
+    <input id="search" placeholder="搜尋站點名稱…" />
+    <select id="statusFilter">
+      <option value="all">全部</option>
+      <option value="green">正常</option>
+      <option value="yellow">無車</option>
+      <option value="red">無位</option>
+    </select>
+  </div>
 
-  <input id="search" placeholder="搜尋站點名稱…" />
   <div id="map"></div>
 
   <!-- Leaflet JS -->
@@ -111,14 +116,10 @@
   <script>
     const DATA_URL = "stations.json";
 
-    /* 地圖初始化 + 縮放鈕右上 */
-    const map = L.map("map", {
-      zoomControl: false
-    }).setView([24.9936, 121.3010], 12);
+    const map = L.map("map", { zoomControl: false })
+      .setView([24.9936, 121.3010], 12);
 
-    L.control.zoom({
-      position: "topright"
-    }).addTo(map);
+    L.control.zoom({ position: "topright" }).addTo(map);
 
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: "© OpenStreetMap"
