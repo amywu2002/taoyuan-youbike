@@ -188,7 +188,7 @@ function render() {
     markers.push(marker);
   });
 
-  count.textContent = `站點數：${markers.length} 筆`;
+  count.textContent = `站點數：${markers.length} `;
 }
 
 fetch(DATA_URL)
@@ -203,6 +203,7 @@ statusFilter.addEventListener("change", render);
 </script>
 </body>
 </html>
+
 
 
 
