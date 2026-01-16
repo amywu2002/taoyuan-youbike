@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <title>桃園 YouBike 站點地圖（靜態版）</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Leaflet CSS -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
+
+  <style>
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    #map {
+      height: 100vh;
+      width: 100%;
+    }
+
+    #search {
+      position: absolute;
+      top: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+      padding: 8px 12px;
+      width: 260px;
+      font-size: 16px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      background: #fff;
+      box-shadow: 0 2px 6px rgba(0,0,0,.15);
+    }
+
+    #count {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      z-index: 1000;
+      background: #fff;
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-size: 14px;
+      box-shadow: 0 2px 6px rgba(0,0,0,.15);
+    }
+
+    .circle {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      color: #fff;
+      text-align: center;
+      font-size: 14px;
+      line-height: 1.1;
+      padding-top: 6px;
+      box-sizing: border-box;
+      font-weight: bold;
+      border: 2px solid #fff;
+      box-shadow: 0 0 4px rgba(0,0,0,.4);
+    }
+
+    .green  { background: #2ecc71; }
+    .yellow { background: #f1c40f; color: #333; }
+    .red    { background: #e74c3c; }
+
+    .divider {
+      border-top: 1px solid rgba(255,255,255,.7);
+      margin: 3px 6px;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="count">站點：--</div>
+  <input id="search" placeholder="搜尋站點名稱…" />
+  <div id="map"></div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <script>
+    // ⚠️ 關鍵：只抓「同資料夾」的靜態 JSON
+    const DATA_URL = "stations.json";
+
+    const map = L.map("map").setView([24.9936, 121.3010], 12);
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "© OpenStreetMap"
+    }).addTo(map);
+
+    let markers = [];
+    let rawData = [];
+
+    function clearMarkers() {
+      markers.forEach(m => map.removeLayer(m));
+      markers = [];
+    }
+
+    // 🔴🟡🟢 規則
+    function getColor(borrow, ret) {
+      if (ret === 0) return "red";
+      if (borrow === 0) return "yellow";
+      return "green";
+    }
+
+    function render(list) {
+      clearMarkers();
+      const bounds = [];
+
+      list.forEach(s => {
+        const lat = Number(s.lat);
+        const lng = Number(s.lng);
+
+        if (isNaN(lat) || isNaN(lng)) return;
+
+        const borrow = Number(s.borrow);
+        const ret    = Number(s.return);
+        const total  = Number(s.total);
+
+        const icon = L.divIcon({
+          className: "",
+          iconSize: [52, 52],
+          iconAnchor: [26, 26],
+          html: `
+            <div class="circle ${getColor(borrow, ret)}">
+              ${borrow}
+              <div class="divider"></div>
+              ${ret}
+            </div>
+          `
+        });
+
+        const marker = L.marker([lat, lng], { icon }).addTo(map);
+        marker.bindPopup(`
+          <b>${s.name}</b><br>
+          🚲 可借：${borrow}<br>
+          🅿️ 可還：${ret}<br>
+          📍 總車柱：${total}
+        `);
+
+        markers.push(marker);
+        bounds.push([lat, lng]);
+      });
+
+      document.getElementById("count").textContent =
+        `站點：${markers.length} 筆`;
+
+      if (bounds.length) {
+        map.fitBounds(bounds, { padding: [40, 40] });
+      }
+    }
+
+    fetch(DATA_URL)
+      .then(res => res.json())
+      .then(data => {
+        rawData = data;
+        render(data);
+      })
+      .catch(err => {
+        alert("資料載入失敗（stations.json）");
+        console.error(err);
+      });
+
+    document.getElementById("search").addEventListener("input", e => {
+      const keyword = e.target.value.trim();
+      render(
+        rawData.filter(s => s.name.includes(keyword))
+      );
+    });
+  </script>
+</body>
+</html>
