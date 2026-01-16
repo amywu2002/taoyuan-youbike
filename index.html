@@ -37,6 +37,20 @@
       box-shadow: 0 2px 6px rgba(0,0,0,.15);
     }
 
+    #statusFilter {
+      position: absolute;
+      top: 58px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+      padding: 6px 10px;
+      font-size: 14px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      background: #fff;
+      box-shadow: 0 2px 6px rgba(0,0,0,.15);
+    }
+
     #count {
       position: absolute;
       top: 12px;
@@ -77,14 +91,23 @@
 
 <body>
   <div id="count">站點：--</div>
+
   <input id="search" placeholder="搜尋站點名稱…" />
+
+  <!-- ✅ 新增：狀態篩選 -->
+  <select id="statusFilter">
+    <option value="all">全部狀態</option>
+    <option value="normal">🟢 正常</option>
+    <option value="nobike">🟡 無車</option>
+    <option value="nofree">🔴 無位</option>
+  </select>
+
   <div id="map"></div>
 
   <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <script>
-    // ✅ 使用你現有的 stations.json
     const DATA_URL = "stations.json";
 
     const map = L.map("map").setView([24.9936, 121.3010], 12);
@@ -101,11 +124,20 @@
       markers = [];
     }
 
-    // 🔴🟡🟢 規則
     function getColor(borrow, ret) {
       if (ret === 0) return "red";
       if (borrow === 0) return "yellow";
       return "green";
+    }
+
+    // ✅ 判斷站點狀態
+    function getStatus(s) {
+      const borrow = Number(s.sbi);
+      const ret = Number(s.bemp);
+
+      if (ret === 0) return "nofree";
+      if (borrow === 0) return "nobike";
+      return "normal";
     }
 
     function render(list) {
@@ -154,33 +186,41 @@
       }
     }
 
+    // ✅ 統一處理搜尋 + 狀態篩選
+    function applyFilters() {
+      const keyword = document.getElementById("search").value.trim();
+      const status  = document.getElementById("statusFilter").value;
+
+      let filtered = rawData;
+
+      if (keyword) {
+        filtered = filtered.filter(s =>
+          s.sna && s.sna.includes(keyword)
+        );
+      }
+
+      if (status !== "all") {
+        filtered = filtered.filter(s =>
+          getStatus(s) === status
+        );
+      }
+
+      render(filtered);
+    }
+
     fetch(DATA_URL)
       .then(res => res.json())
       .then(json => {
-        // 你的檔案最外層是 { retCode, retVal: [...] }
         rawData = json.retVal;
-        render(rawData);
+        applyFilters();
       })
       .catch(err => {
         alert("資料載入失敗（stations.json）");
         console.error(err);
       });
 
-    document.getElementById("search").addEventListener("input", e => {
-      const keyword = e.target.value.trim();
-      render(
-        rawData.filter(s => s.sna && s.sna.includes(keyword))
-      );
-    });
+    document.getElementById("search").addEventListener("input", applyFilters);
+    document.getElementById("statusFilter").addEventListener("change", applyFilters);
   </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
