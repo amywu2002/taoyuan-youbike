@@ -1,193 +1,168 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-  <meta charset="UTF-8" />
-  <title>桃園 YouBike 站點地圖</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8" />
+<title>桃園 YouBike 站點地圖</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- Leaflet CSS -->
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-  />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 
-  <style>
-    body {
-      margin: 0;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    }
+<style>
+html, body { margin:0; height:100%; }
+#map { height:100%; }
 
-    #map {
-      height: 100vh;
-      width: 100%;
-    }
+/* 搜尋 + 篩選列 */
+#toolbar {
+  position:absolute;
+  top:12px;
+  left:50%;
+  transform:translateX(-50%);
+  z-index:1000;
+  display:flex;
+  gap:8px;
+}
 
-    #search {
-      position: absolute;
-      top: 12px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 1000;
-      padding: 8px 12px;
-      width: 260px;
-      font-size: 16px;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-      background: #fff;
-      box-shadow: 0 2px 6px rgba(0,0,0,.15);
-    }
+#search, #statusFilter {
+  padding:8px 12px;
+  font-size:14px;
+  border-radius:10px;
+  border:1px solid #ccc;
+  box-shadow:0 2px 6px rgba(0,0,0,.2);
+}
 
-    #count {
-      position: absolute;
-      top: 12px;
-      left: 12px;
-      z-index: 1000;
-      background: #fff;
-      padding: 6px 10px;
-      border-radius: 8px;
-      font-size: 14px;
-      box-shadow: 0 2px 6px rgba(0,0,0,.15);
-    }
+/* ===== 官方水滴 Marker ===== */
+.marker {
+  width:56px;
+  height:56px;
+  position:relative;
+}
 
-    /* === 官方水滴 Marker === */
-    .marker {
-      position: relative;
-      width: 48px;
-      height: 48px;
-      border-radius: 50% 50% 50% 0;
-      transform: rotate(-45deg);
-      border: 2px solid #fff;
-      box-shadow: 0 2px 6px rgba(0,0,0,.35);
-    }
+.marker svg {
+  width:56px;
+  height:56px;
+}
 
-    .marker::after {
-      content: "";
-      position: absolute;
-      width: 12px;
-      height: 12px;
-      background: inherit;
-      bottom: -6px;
-      left: 50%;
-      transform: translateX(-50%);
-    }
+.marker text {
+  fill:#fff;
+  font-weight:bold;
+  font-size:14px;
+  text-anchor:middle;
+}
 
-    .marker .content {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -55%) rotate(45deg);
-      color: #fff;
-      font-weight: bold;
-      font-size: 12px;
-      text-align: center;
-      line-height: 1.1;
-    }
+.marker .small {
+  font-size:12px;
+}
 
-    .marker .divider {
-      border-top: 1.5px solid rgba(255,255,255,.8);
-      margin: 2px 6px;
-    }
+/* 官方色 */
+.green  { --c:#7AC943; }
+.yellow { --c:#F5A623; }
+.red    { --c:#A80000; }
 
-    .green  { background: #7AC943; }
-    .yellow { background: #F5A623; }
-    .red    { background: #8B0000; }
-  </style>
+</style>
 </head>
 
 <body>
-  <div id="count">站點：--</div>
-  <input id="search" placeholder="搜尋站點名稱…" />
-  <div id="map"></div>
+<div id="toolbar">
+  <input id="search" placeholder="搜尋站點名稱">
+  <select id="statusFilter">
+    <option value="">全部</option>
+    <option value="green">正常</option>
+    <option value="yellow">無車</option>
+    <option value="red">無位</option>
+  </select>
+</div>
 
-  <!-- Leaflet JS -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<div id="map"></div>
 
-  <script>
-    const DATA_URL = "stations.json";
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-    const map = L.map("map").setView([24.9936, 121.3010], 12);
+<script>
+const map = L.map("map").setView([24.9936,121.3010],12);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
 
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: "© OpenStreetMap"
-    }).addTo(map);
+let markers = [];
+let rawData = [];
 
-    let markers = [];
-    let rawData = [];
+/* 狀態判斷 */
+function getStatus(borrow, ret) {
+  if (ret === 0) return "red";
+  if (borrow === 0) return "yellow";
+  return "green";
+}
 
-    function clearMarkers() {
-      markers.forEach(m => map.removeLayer(m));
-      markers = [];
-    }
+/* ⭐ 官方水滴 SVG */
+function makeMarkerHTML(borrow, ret, color) {
+  return `
+  <div class="marker ${color}">
+    <svg viewBox="0 0 64 64">
+      <path d="M32 2
+        C20 2 10 12 10 24
+        C10 40 32 62 32 62
+        C32 62 54 40 54 24
+        C54 12 44 2 32 2Z"
+        fill="var(--c)"
+        stroke="#fff"
+        stroke-width="3"/>
+      <text x="32" y="26">${borrow}</text>
+      <text x="32" y="42" class="small">${ret}</text>
+    </svg>
+  </div>`;
+}
 
-    function getColor(borrow, ret) {
-      if (ret === 0) return "red";
-      if (borrow === 0) return "yellow";
-      return "green";
-    }
+function render(list) {
+  markers.forEach(m=>map.removeLayer(m));
+  markers=[];
 
-    function render(list) {
-      clearMarkers();
-      const bounds = [];
+  list.forEach(s=>{
+    const lat=+s.lat, lng=+s.lng;
+    if(isNaN(lat)||isNaN(lng))return;
 
-      list.forEach(s => {
-        const lat = Number(s.lat);
-        const lng = Number(s.lng);
-        if (isNaN(lat) || isNaN(lng)) return;
+    const borrow=+s.sbi, ret=+s.bemp;
+    const status=getStatus(borrow,ret);
 
-        const borrow = Number(s.sbi) || 0;
-        const ret    = Number(s.bemp) || 0;
-        const total  = Number(s.tot) || 0;
+    if(filter && status!==filter) return;
 
-        const icon = L.divIcon({
-          className: "",
-          iconSize: [48, 48],
-          iconAnchor: [24, 48],
-          html: `
-            <div class="marker ${getColor(borrow, ret)}">
-              <div class="content">
-                ${borrow}
-                <div class="divider"></div>
-                ${ret}
-              </div>
-            </div>
-          `
-        });
-
-        const marker = L.marker([lat, lng], { icon }).addTo(map);
-        marker.bindPopup(`
-          <b>${s.sna}</b><br>
-          🚲 可借：${borrow}<br>
-          🅿️ 可還：${ret}<br>
-          📍 總車柱：${total}
-        `);
-
-        markers.push(marker);
-        bounds.push([lat, lng]);
-      });
-
-      document.getElementById("count").textContent =
-        `站點：${markers.length} 筆`;
-
-      if (bounds.length) {
-        map.fitBounds(bounds, { padding: [40, 40] });
-      }
-    }
-
-    fetch(DATA_URL)
-      .then(res => res.json())
-      .then(json => {
-        rawData = json.retVal;
-        render(rawData);
-      })
-      .catch(err => {
-        alert("資料載入失敗（stations.json）");
-        console.error(err);
-      });
-
-    document.getElementById("search").addEventListener("input", e => {
-      const keyword = e.target.value.trim();
-      render(rawData.filter(s => s.sna && s.sna.includes(keyword)));
+    const icon=L.divIcon({
+      html:makeMarkerHTML(borrow,ret,status),
+      iconSize:[56,56],
+      iconAnchor:[28,56]
     });
-  </script>
+
+    markers.push(
+      L.marker([lat,lng],{icon})
+       .addTo(map)
+       .bindPopup(`<b>${s.sna}</b><br>可借:${borrow}<br>可還:${ret}`)
+    );
+  });
+}
+
+/* 載入資料 */
+fetch("stations.json")
+.then(r=>r.json())
+.then(j=>{
+  rawData=j.retVal;
+  render(rawData);
+});
+
+/* 搜尋 */
+document.getElementById("search").addEventListener("input",()=>{
+  applyFilter();
+});
+
+/* 狀態篩選 */
+document.getElementById("statusFilter").addEventListener("change",()=>{
+  applyFilter();
+});
+
+let filter="";
+function applyFilter(){
+  const kw=document.getElementById("search").value.trim();
+  filter=document.getElementById("statusFilter").value;
+
+  render(rawData.filter(s=>
+    (!kw||s.sna.includes(kw))
+  ));
+}
+</script>
 </body>
 </html>
