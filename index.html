@@ -22,7 +22,21 @@
       width: 100%;
     }
 
-    /* 左上站點數 */
+    #search {
+      position: absolute;
+      top: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+      padding: 8px 12px;
+      width: 260px;
+      font-size: 16px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      background: #fff;
+      box-shadow: 0 2px 6px rgba(0,0,0,.15);
+    }
+
     #count {
       position: absolute;
       top: 12px;
@@ -35,79 +49,54 @@
       box-shadow: 0 2px 6px rgba(0,0,0,.15);
     }
 
-    /* 🔍 搜尋 + 篩選容器 */
-    #topBar {
+    /* === 官方水滴 Marker === */
+    .marker {
+      position: relative;
+      width: 48px;
+      height: 48px;
+      border-radius: 50% 50% 50% 0;
+      transform: rotate(-45deg);
+      border: 2px solid #fff;
+      box-shadow: 0 2px 6px rgba(0,0,0,.35);
+    }
+
+    .marker::after {
+      content: "";
       position: absolute;
-      top: 12px;
+      width: 12px;
+      height: 12px;
+      background: inherit;
+      bottom: -6px;
       left: 50%;
       transform: translateX(-50%);
-      z-index: 1000;
-      display: flex;
-      gap: 8px;
-      align-items: center;
     }
 
-    #search {
-      padding: 8px 12px;
-      width: 220px;
-      font-size: 16px;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-      background: #fff;
-      box-shadow: 0 2px 6px rgba(0,0,0,.15);
-    }
-
-    #statusFilter {
-      padding: 8px 10px;
-      font-size: 14px;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-      background: #fff;
-      box-shadow: 0 2px 6px rgba(0,0,0,.15);
-      cursor: pointer;
-    }
-
-    /* Marker 外觀 */
-    .circle {
-      width: 52px;
-      height: 52px;
-      border-radius: 50%;
+    .marker .content {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -55%) rotate(45deg);
       color: #fff;
-      text-align: center;
-      font-size: 14px;
-      line-height: 1.1;
-      padding-top: 6px;
-      box-sizing: border-box;
       font-weight: bold;
-      border: 2px solid #fff;
-      box-shadow: 0 0 4px rgba(0,0,0,.4);
+      font-size: 12px;
+      text-align: center;
+      line-height: 1.1;
+    }
+
+    .marker .divider {
+      border-top: 1.5px solid rgba(255,255,255,.8);
+      margin: 2px 6px;
     }
 
     .green  { background: #7AC943; }
     .yellow { background: #F5A623; }
-    .red    { background: #A80000; }
-
-    .divider {
-      border-top: 2px solid rgba(255,255,255,.7);
-      margin: 3px 10px;
-    }
+    .red    { background: #8B0000; }
   </style>
 </head>
 
 <body>
   <div id="count">站點：--</div>
-
-  <!-- 🔍 搜尋 + 狀態篩選 -->
-  <div id="topBar">
-    <input id="search" placeholder="搜尋站點名稱…" />
-    <select id="statusFilter">
-      <option value="all">全部</option>
-      <option value="green">正常</option>
-      <option value="yellow">無車</option>
-      <option value="red">無位</option>
-    </select>
-  </div>
-
+  <input id="search" placeholder="搜尋站點名稱…" />
   <div id="map"></div>
 
   <!-- Leaflet JS -->
@@ -116,10 +105,7 @@
   <script>
     const DATA_URL = "stations.json";
 
-    const map = L.map("map", { zoomControl: false })
-      .setView([24.9936, 121.3010], 12);
-
-    L.control.zoom({ position: "topright" }).addTo(map);
+    const map = L.map("map").setView([24.9936, 121.3010], 12);
 
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: "© OpenStreetMap"
@@ -139,27 +125,6 @@
       return "green";
     }
 
-    function applyFilter() {
-      const keyword = document.getElementById("search").value.trim();
-      const status = document.getElementById("statusFilter").value;
-
-      let list = rawData;
-
-      if (keyword) {
-        list = list.filter(s => s.sna && s.sna.includes(keyword));
-      }
-
-      if (status !== "all") {
-        list = list.filter(s => {
-          const borrow = Number(s.sbi);
-          const ret = Number(s.bemp);
-          return getColor(borrow, ret) === status;
-        });
-      }
-
-      render(list);
-    }
-
     function render(list) {
       clearMarkers();
       const bounds = [];
@@ -169,19 +134,21 @@
         const lng = Number(s.lng);
         if (isNaN(lat) || isNaN(lng)) return;
 
-        const borrow = Number(s.sbi);
-        const ret    = Number(s.bemp);
-        const total  = Number(s.tot);
+        const borrow = Number(s.sbi) || 0;
+        const ret    = Number(s.bemp) || 0;
+        const total  = Number(s.tot) || 0;
 
         const icon = L.divIcon({
           className: "",
-          iconSize: [52, 52],
-          iconAnchor: [26, 26],
+          iconSize: [48, 48],
+          iconAnchor: [24, 48],
           html: `
-            <div class="circle ${getColor(borrow, ret)}">
-              ${borrow}
-              <div class="divider"></div>
-              ${ret}
+            <div class="marker ${getColor(borrow, ret)}">
+              <div class="content">
+                ${borrow}
+                <div class="divider"></div>
+                ${ret}
+              </div>
             </div>
           `
         });
@@ -210,15 +177,17 @@
       .then(res => res.json())
       .then(json => {
         rawData = json.retVal;
-        applyFilter();
+        render(rawData);
       })
       .catch(err => {
         alert("資料載入失敗（stations.json）");
         console.error(err);
       });
 
-    document.getElementById("search").addEventListener("input", applyFilter);
-    document.getElementById("statusFilter").addEventListener("change", applyFilter);
+    document.getElementById("search").addEventListener("input", e => {
+      const keyword = e.target.value.trim();
+      render(rawData.filter(s => s.sna && s.sna.includes(keyword)));
+    });
   </script>
 </body>
 </html>
