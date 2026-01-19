@@ -63,22 +63,15 @@ body {
   border: none !important;
 }
 
-/* 手機版 marker 稍大 */
 .marker svg {
   width: 60px;
   height: 68px;
 }
 
-/* +- 移到右上 */
+/* +- 右上 */
 .leaflet-top.leaflet-left {
   right: 12px;
   left: auto;
-}
-
-/* 🟦 使用者定位圖層（最高層） */
-.leaflet-pane.userLocation {
-  z-index: 9999 !important;
-  pointer-events: none;
 }
 
 /* 🟦 藍色定位點 */
@@ -99,9 +92,9 @@ body {
 
 <div id="controls">
   <select id="city">
-    <option value="all">縣市</option>
+    <option value="all">城市</option>
     <option value="ty">桃園</option>
-    <option value="tp">台北</option>
+    <option value="tp">臺北</option>
   </select>
 
   <input id="search" placeholder="搜尋站點名稱或地址…" />
@@ -119,7 +112,6 @@ body {
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-/* API */
 const TAIPEI_API =
   "https://tcgbusfs.blob.core.windows.net/dotapp/youbike/v2/youbike_immediate.json";
 const TAOYUAN_API = "stations.json";
@@ -127,7 +119,10 @@ const TAOYUAN_API = "stations.json";
 /* 地圖 */
 const map = L.map("map").setView([25.03, 121.55], 11);
 map.zoomControl.setPosition("topright");
+
+/* ✅ 關鍵：建立「最高層」pane */
 map.createPane("userLocation");
+map.getPane("userLocation").style.zIndex = 10000;
 
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
   attribution: "© OpenStreetMap"
@@ -138,7 +133,7 @@ let dataTP = [];
 let dataTY = [];
 let userMarker = null;
 
-/* ===== 自動定位 ===== */
+/* ===== 使用者定位（自動） ===== */
 function locateUser() {
   if (!navigator.geolocation) return;
 
@@ -165,7 +160,7 @@ function locateUser() {
 }
 locateUser();
 
-/* ===== 共用工具 ===== */
+/* ===== 工具 ===== */
 function clearMarkers() {
   markers.forEach(m => map.removeLayer(m));
   markers = [];
@@ -216,28 +211,27 @@ function render() {
   });
 
   list.forEach(s => {
-    const icon = L.divIcon({
-      iconSize: [60, 68],
-      iconAnchor: [30, 68],
-      html: makeMarkerHTML(s.borrow, s.ret, getStatus(s.borrow, s.ret))
-    });
-
-    const marker = L.marker([s.lat, s.lng], { icon })
-      .addTo(map)
+    const marker = L.marker([s.lat, s.lng], {
+      icon: L.divIcon({
+        iconSize: [60, 68],
+        iconAnchor: [30, 68],
+        html: makeMarkerHTML(s.borrow, s.ret, getStatus(s.borrow, s.ret))
+      })
+    }).addTo(map)
       .bindPopup(`
         <b>${s.name}</b><br>
         地址：${s.addr}<br>
-        🚲 可借：${s.borrow}<br>
-        🅿️ 可還：${s.ret}
+        可借：${s.borrow}<br>
+        可還：${s.ret}
       `);
 
     markers.push(marker);
   });
 
-  count.textContent = `站點：${markers.length} 筆`;
+  count.textContent = `站點：${markers.length} `;
 }
 
-/* ===== 資料載入 ===== */
+/* ===== 資料 ===== */
 fetch(TAOYUAN_API).then(r => r.json()).then(j => {
   dataTY = Object.values(j.retVal).map(s => ({
     name: s.sna,
@@ -269,4 +263,3 @@ city.addEventListener("change", render);
 
 </body>
 </html>
-
