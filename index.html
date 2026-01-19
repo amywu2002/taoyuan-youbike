@@ -18,7 +18,7 @@ body {
   width: 100%;
 }
 
-/* 左上 */
+/* 左上站點數 */
 #count {
   position: absolute;
   top: 12px;
@@ -31,7 +31,7 @@ body {
   font-size: 14px;
 }
 
-/* 上方控制 */
+/* 上方控制列 */
 #controls {
   position: absolute;
   top: 12px;
@@ -63,6 +63,7 @@ body {
   border: none !important;
 }
 
+/* 手機 marker 放大 */
 .marker svg {
   width: 60px;
   height: 68px;
@@ -74,20 +75,20 @@ body {
   left: auto;
 }
 
-/* 🟦 使用者定位圖層（最上層） */
+/* 使用者定位圖層（最上層） */
 .leaflet-pane.userLocation {
-  z-index: 9999 !important;
+  z-index: 1000 !important;
   pointer-events: none;
 }
 
-/* 🟦 藍點樣式（有浮起陰影） */
+/* 藍色定位點 */
 .user-dot {
   width: 18px;
   height: 18px;
   background: #1A73E8;
   border-radius: 50%;
   border: 3px solid #fff;
-  box-shadow: 0 4px 12px rgba(0,0,0,.45);
+  box-shadow: 0 0 10px rgba(0,0,0,.45);
 }
 </style>
 </head>
@@ -125,10 +126,7 @@ const TAOYUAN_API = "stations.json";
 /* 地圖 */
 const map = L.map("map").setView([25.03, 121.55], 11);
 map.zoomControl.setPosition("topright");
-
-/* 🔝 建立「最上層」pane */
 map.createPane("userLocation");
-map.getPane("userLocation").style.zIndex = 9999;
 
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
   attribution: "© OpenStreetMap"
@@ -139,35 +137,25 @@ let dataTP = [];
 let dataTY = [];
 let userMarker = null;
 
-/* ===== 定位（自動啟動） ===== */
-function locateUser() {
-  if (!navigator.geolocation) return;
-
+/* 自動定位 */
+if (navigator.geolocation) {
   navigator.geolocation.getCurrentPosition(pos => {
-    const lat = pos.coords.latitude;
-    const lng = pos.coords.longitude;
+    const { latitude, longitude } = pos.coords;
 
-    if (!userMarker) {
-      userMarker = L.marker([lat, lng], {
-        pane: "userLocation",
-        zIndexOffset: 10000, // ⭐ 關鍵：永遠在最上面
-        icon: L.divIcon({
-          className: "",
-          iconSize: [24, 24],
-          html: `<div class="user-dot"></div>`
-        })
-      }).addTo(map);
+    userMarker = L.marker([latitude, longitude], {
+      pane: "userLocation",
+      icon: L.divIcon({
+        className: "",
+        iconSize: [24, 24],
+        html: `<div class="user-dot"></div>`
+      })
+    }).addTo(map);
 
-      map.setView([lat, lng], 14);
-    } else {
-      userMarker.setLatLng([lat, lng]);
-    }
+    map.setView([latitude, longitude], 14);
   });
 }
 
-locateUser(); // 進頁面就定位
-
-/* ===== 共用工具 ===== */
+/* 工具 */
 function clearMarkers() {
   markers.forEach(m => map.removeLayer(m));
   markers = [];
@@ -198,7 +186,7 @@ function makeMarkerHTML(b, r, status) {
   </div>`;
 }
 
-/* ===== Render ===== */
+/* Render（含 popup） */
 function render() {
   clearMarkers();
 
@@ -224,14 +212,23 @@ function render() {
       html: makeMarkerHTML(s.borrow, s.ret, getStatus(s.borrow, s.ret))
     });
 
-    const marker = L.marker([s.lat, s.lng], { icon }).addTo(map);
+    const marker = L.marker([s.lat, s.lng], { icon })
+      .addTo(map)
+      .bindPopup(`
+        <b>${s.name}</b><br>
+        地址：${s.addr}<br>
+        🚲 可借：${s.borrow}<br>
+        🅿️ 可還：${s.ret}<br>
+        📍 總車柱：${s.borrow + s.ret}
+      `);
+
     markers.push(marker);
   });
 
   count.textContent = `站點：${markers.length} 筆`;
 }
 
-/* ===== 資料載入 ===== */
+/* 資料載入 */
 fetch(TAOYUAN_API).then(r => r.json()).then(j => {
   dataTY = Object.values(j.retVal).map(s => ({
     name: s.sna,
