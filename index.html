@@ -94,7 +94,7 @@ body {
   <select id="city">
     <option value="all">城市</option>
     <option value="ty">桃園</option>
-    <option value="tp">新北</option>
+    <option value="nt">新北</option>
     <option value="tp">臺北</option>
   </select>
 
@@ -204,6 +204,7 @@ function render() {
   let list = [];
   if (cityF === "all" || cityF === "ty") list = list.concat(dataTY);
   if (cityF === "all" || cityF === "tp") list = list.concat(dataTP);
+  if (cityF === "all" || cityF === "nt") list = list.concat(dataNT);
 
   list = list.filter(s => {
     const st = getStatus(s.borrow, s.ret);
@@ -249,7 +250,7 @@ fetch(TAOYUAN_API).then(r => r.json()).then(j => {
 fetch(NEWTAI_API)
   .then(r => r.json())
   .then(j => {
-    dataTP = j.map(s => ({
+    dataNT = j.map(s => ({
       name: s.sna,
       addr: s.ar || "",
       lat: Number(s.lat),
@@ -279,6 +280,7 @@ city.addEventListener("change", render);
 
 </body>
 </html>
+
 
 
 
