@@ -255,7 +255,7 @@ fetch(NEWTAI_API)
       addr: s.ar || "",
       lat: Number(s.lat),
       lng: Number(s.lng),
-      borrow: Number(s.sbi),
+      borrow: Number(s.sbi_quantity),
       ret: Number(s.bemp)
     }));
     render();
@@ -280,6 +280,7 @@ city.addEventListener("change", render);
 
 </body>
 </html>
+
 
 
 
