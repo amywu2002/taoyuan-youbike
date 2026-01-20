@@ -94,6 +94,7 @@ body {
   <select id="city">
     <option value="all">城市</option>
     <option value="ty">桃園</option>
+    <option value="tp">新北</option>
     <option value="tp">臺北</option>
   </select>
 
@@ -115,6 +116,7 @@ body {
 const TAIPEI_API =
   "https://tcgbusfs.blob.core.windows.net/dotapp/youbike/v2/youbike_immediate.json";
 const TAOYUAN_API = "stations.json";
+const NEWTAI_API = "https://green-boat-a984.hippop3c.workers.dev/";
 
 /* 地圖 */
 const map = L.map("map").setView([25.03, 121.55], 11);
@@ -243,7 +245,21 @@ fetch(TAOYUAN_API).then(r => r.json()).then(j => {
   }));
   render();
 });
-
+  
+fetch(NEWTAI_API)
+  .then(r => r.json())
+  .then(j => {
+    dataTP = j.map(s => ({
+      name: s.sna,
+      addr: s.ar || "",
+      lat: Number(s.lat),
+      lng: Number(s.lng),
+      borrow: Number(s.sbi),
+      ret: Number(s.bemp)
+    }));
+    render();
+  });
+  
 fetch(TAIPEI_API).then(r => r.json()).then(j => {
   dataTP = j.map(s => ({
     name: s.sna,
@@ -263,6 +279,7 @@ city.addEventListener("change", render);
 
 </body>
 </html>
+
 
 
 
