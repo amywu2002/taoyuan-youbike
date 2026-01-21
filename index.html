@@ -115,7 +115,7 @@ body {
 <script>
 const TAIPEI_API =
   "https://tcgbusfs.blob.core.windows.net/dotapp/youbike/v2/youbike_immediate.json";
-const TAOYUAN_API = "https://youbike-proxy.vercel.app/api/tycg?debug=1";
+const TAOYUAN_API = "stations.json";
 const NEWTAI_API = "https://cool-block-affbntpc-youbike-proxy.amywu2.workers.dev/ntpc";
 
 /* 地圖 */
@@ -236,8 +236,7 @@ function render() {
 
 /* ===== 資料 ===== */
 fetch(TAOYUAN_API).then(r => r.json()).then(j => {
-  const rows = j?.result?.records ?? [];
-  dataTY = rows.map(s => ({
+  dataTY = Object.values(j.retVal).map(s => ({
     name: s.sna,
     addr: s.ar || "",
     lat: Number(s.lat),
@@ -281,17 +280,4 @@ city.addEventListener("change", render);
 
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
 
