@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -5,7 +6,7 @@
 <title>YouBike站點地圖</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/s
 
 <style>
 body {
@@ -110,7 +111,7 @@ body {
 
 <div id="map"></div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/cript>
 
 <script>
 const TAIPEI_API =
@@ -122,7 +123,7 @@ const NEWTAI_API = "https://cool-block-affbntpc-youbike-proxy.amywu2.workers.dev
 const map = L.map("map").setView([25.03, 121.55], 11);
 map.zoomControl.setPosition("topright");
 
-/* ✅ 關鍵：建立「最高層」pane */
+/* 建立使用者定位 pane（在最上層） */
 map.createPane("userLocation");
 map.getPane("userLocation").style.zIndex = 650;
 
@@ -133,7 +134,11 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
 let markers = [];
 let dataTP = [];
 let dataTY = [];
+let dataNT = [];
 let userMarker = null;
+
+/* ⛳ marker 快取提升效能 */
+let markerMap = new Map();
 
 /* ===== 使用者定位（自動） ===== */
 function locateUser() {
@@ -146,7 +151,6 @@ function locateUser() {
     if (!userMarker) {
       userMarker = L.marker([lat, lng], {
         pane: "userLocation",
-        zIndexOffset: 0,
         icon: L.divIcon({
           className: "",
           iconSize: [24, 24],
@@ -162,12 +166,7 @@ function locateUser() {
 }
 locateUser();
 
-/* ===== 工具 ===== */
-function clearMarkers() {
-  markers.forEach(m => map.removeLayer(m));
-  markers = [];
-}
-
+/* 工具 */
 function getStatus(b, r) {
   if (r === 0) return "red";
   if (b === 0) return "yellow";
@@ -193,9 +192,55 @@ function makeMarkerHTML(b, r, status) {
   </div>`;
 }
 
+/* 🚀 高效能：增量更新（不重建 marker） */
+function updateOrCreateMarker(s) {
+  const key = s.name;
+  const status = getStatus(s.borrow, s.ret);
+
+  if (markerMap.has(key)) {
+    const m = markerMap.get(key);
+
+    m.setLatLng([s.lat, s.lng]);
+
+    m.setIcon(
+      L.divIcon({
+        iconSize: [60, 68],
+        iconAnchor: [30, 68],
+        html: makeMarkerHTML(s.borrow, s.ret, status)
+      })
+    );
+
+    m.setPopupContent(`
+      <b>${s.name}</b><br>
+      地址：${s.addr}<br>
+      可借：${s.borrow}<br>
+      可還：${s.ret}
+    `);
+
+    return m;
+  }
+
+  const marker = L.marker([s.lat, s.lng], {
+    icon: L.divIcon({
+      iconSize: [60, 68],
+      iconAnchor: [30, 68],
+      html: makeMarkerHTML(s.borrow, s.ret, status)
+    })
+  }).addTo(map)
+    .bindPopup(`
+      <b>${s.name}</b><br>
+      地址：${s.addr}<br>
+      可借：${s.borrow}<br>
+      可還：${s.ret}
+    `);
+
+  markerMap.set(key, marker);
+  return marker;
+}
+
 /* ===== Render ===== */
 function render() {
-  clearMarkers();
+  markers = [];
 
   const kw = search.value.trim();
   const cityF = city.value;
@@ -214,37 +259,19 @@ function render() {
   });
 
   list.forEach(s => {
-    const marker = L.marker([s.lat, s.lng], {
-      icon: L.divIcon({
-        iconSize: [60, 68],
-        iconAnchor: [30, 68],
-        html: makeMarkerHTML(s.borrow, s.ret, getStatus(s.borrow, s.ret))
-      })
-    }).addTo(map)
-      .bindPopup(`
-        <b>${s.name}</b><br>
-        地址：${s.addr}<br>
-        可借：${s.borrow}<br>
-        可還：${s.ret}
-      `);
-
+    const marker = updateOrCreateMarker(s);
     markers.push(marker);
   });
 
   count.textContent = `站點：${markers.length}站`;
 }
 
-
-// === 每 30 秒自動更新資料 ===
-setInterval(() => {
+/* ===== 一次性載入 ===== */
+function loadAll() {
   fetch(TAOYUAN_API).then(r => r.json()).then(j => {
     dataTY = Object.values(j.retVal).map(s => ({
-      name: s.sna,
-      addr: s.ar || "",
-      lat: Number(s.lat),
-      lng: Number(s.lng),
-      borrow: Number(s.sbi),
-      ret: Number(s.bemp)
+      name: s.sna, addr: s.ar || "", lat: Number(s.lat), lng: Number(s.lng),
+      borrow: Number(s.sbi), ret: Number(s.bemp)
     }));
     render();
   });
@@ -253,28 +280,25 @@ setInterval(() => {
     .then(r => r.json())
     .then(j => {
       dataNT = j.map(s => ({
-        name: s.sna,
-        addr: s.ar || "",
-        lat: Number(s.lat),
-        lng: Number(s.lng),
-        borrow: Number(s.sbi_quantity),
-        ret: Number(s.bemp)
+        name: s.sna, addr: s.ar || "", lat: Number(s.lat), lng: Number(s.lng),
+        borrow: Number(s.sbi_quantity), ret: Number(s.bemp)
       }));
       render();
     });
 
   fetch(TAIPEI_API).then(r => r.json()).then(j => {
     dataTP = j.map(s => ({
-      name: s.sna,
-      addr: s.ar || "",
-      lat: Number(s.latitude),
-      lng: Number(s.longitude),
-      borrow: Number(s.available_rent_bikes),
-      ret: Number(s.available_return_bikes)
+      name: s.sna, addr: s.ar || "", lat: Number(s.latitude), lng: Number(s.longitude),
+      borrow: Number(s.available_rent_bikes), ret: Number(s.available_return_bikes)
     }));
     render();
   });
-}, 30000);
+}
+
+loadAll();
+
+/* 🔄 每 30 秒自動更新（增量更新） */
+setInterval(loadAll, 30000);
 
 search.addEventListener("input", render);
 statusFilter.addEventListener("change", render);
