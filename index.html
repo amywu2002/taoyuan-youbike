@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8" />
-<title>YouBike站點地圖</title>
+<title>桃園YouBike站點地圖</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -76,26 +76,59 @@ body {
   width: 100%;
 }
 
-/* === 以下 marker / leaflet 原樣保留 === */
-.marker.green  { --c:#7AC943; }
-.marker.yellow { --c:#F5A623; }
-.marker.red    { --c:#A80000; }
+/* =====【只改 marker：圓形 + 顏色】===== */
 
 .leaflet-div-icon {
   background: transparent !important;
   border: none !important;
 }
 
-.marker svg {
-  width: 60px;
-  height: 68px;
+/* marker 容器 */
+.marker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform: translateY(-10px);
 }
 
+/* 單一圓 */
+.marker .circle {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 3px solid #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(0,0,0,.35);
+  margin: -6px 0;
+}
+
+/* 顏色（依你截圖） */
+.marker.green .circle {
+  background: #2ecc71;
+  color: #000;
+}
+
+.marker.yellow .circle {
+  background: #f5a623;
+  color: #000;
+}
+
+.marker.red .circle {
+  background: #e53935;
+  color: #fff;
+}
+
+/* leaflet 控制位置 */
 .leaflet-top.leaflet-left {
   right: 12px;
   left: auto;
 }
 
+/* 使用者定位 */
 .user-dot {
   width: 18px;
   height: 18px;
@@ -165,9 +198,7 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
 }).addTo(map);
 
 let markers = [];
-let dataTP = [];
 let dataTY = [];
-let dataNT = [];
 let userMarker = null;
 
 /* ===== 使用者定位（原樣） ===== */
@@ -200,23 +231,14 @@ function getStatus(b, r) {
   return "green";
 }
 
+/* =====【只改這個：marker HTML】===== */
 function makeMarkerHTML(b, r, status) {
   return `
     <div class="marker ${status}">
-      <svg viewBox="0 0 64 72">
-        <path d="M32 2 C20 2 10 12 10 26
-                 C10 44 32 68 32 68
-                 C32 68 54 44 54 26
-                 C54 12 44 2 32 2Z"
-          fill="var(--c)" stroke="#fff" stroke-width="3"/>
-        <line x1="20" y1="30" x2="44" y2="30"
-          stroke="#fff" stroke-width="2"/>
-        <text x="32" y="24" text-anchor="middle"
-          font-size="16" font-weight="700" fill="#fff">${b}</text>
-        <text x="32" y="48" text-anchor="middle"
-          font-size="16" font-weight="600" fill="#fff">${r}</text>
-      </svg>
-    </div>`;
+      <div class="circle">${b}</div>
+      <div class="circle">${r}</div>
+    </div>
+  `;
 }
 
 /* ===== Render（原樣） ===== */
@@ -240,8 +262,8 @@ function render() {
     .forEach(s => {
       const marker = L.marker([s.lat, s.lng], {
         icon: L.divIcon({
-          iconSize: [60, 68],
-          iconAnchor: [30, 68],
+          iconSize: [50, 70],
+          iconAnchor: [25, 70],
           html: makeMarkerHTML(s.borrow, s.ret, getStatus(s.borrow, s.ret))
         })
       })
@@ -259,25 +281,25 @@ function render() {
   count.textContent = `筆數：${markers.length}`;
 }
 
-/* ===== 載入資料（邏輯原樣，只補 UI） ===== */
+/* ===== 載入資料（原樣） ===== */
 function loadData() {
-  Promise.all([
-    fetch(TAOYUAN_API).then(r => r.json()),
-  ]).then(([ty]) => {
-    dataTY = Object.values(ty.retVal).map(s => ({
-      name: s.sna,
-      addr: s.ar || "",
-      lat: +s.lat,
-      lng: +s.lng,
-      borrow: +s.sbi,
-      ret: +s.bemp
-    }));
-    
-    lastUpdate.textContent =
-      "最後更新：" + new Date().toLocaleString();
+  fetch(TAOYUAN_API)
+    .then(r => r.json())
+    .then(ty => {
+      dataTY = Object.values(ty.retVal).map(s => ({
+        name: s.sna,
+        addr: s.ar || "",
+        lat: +s.lat,
+        lng: +s.lng,
+        borrow: +s.sbi,
+        ret: +s.bemp
+      }));
 
-    render();
-  });
+      lastUpdate.textContent =
+        "最後更新：" + new Date().toLocaleString();
+
+      render();
+    });
 }
 
 loadData();
@@ -298,7 +320,3 @@ city.addEventListener("change", render);
 
 </body>
 </html>
-
-
-
-
